@@ -1,0 +1,508 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a regular user/customer.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the user (Firebase UID)." },
+        "phoneNumber": { "type": "string" },
+        "registrationPlate": { "type": "string" }
+      },
+      "required": ["id", "phoneNumber", "registrationPlate"]
+    },
+    "Client": {
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client of the carwash.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client (usually phone number)."
+        },
+        "carwashId": {
+          "type": "string",
+          "description": "ID of the carwash this client belongs to."
+        },
+        "name": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "carwashId", "name", "phoneNumber", "createdAt"]
+    },
+    "Vehicle": {
+        "title": "Vehicle",
+        "type": "object",
+        "description": "Represents a vehicle belonging to a client.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the vehicle." },
+            "clientId": { "type": "string" },
+            "carwashId": { "type": "string" },
+            "registrationPlate": { "type": "string" },
+            "make": { "type": "string" },
+            "model": { "type": "string" },
+            "color": { "type": "string" },
+            "type": { "type": "string" }
+        },
+        "required": ["id", "clientId", "carwashId", "registrationPlate"]
+    },
+    "Signup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Signup",
+      "type": "object",
+      "description": "Represents a signup record for the carwash service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the signup record."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the person signing up for the carwash."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the person signing up.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the person signing up."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "The type of vehicle for the carwash service."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the scheduled carwash.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "phoneNumber",
+        "vehicleType",
+        "date"
+      ]
+    },
+    "Carwash": {
+      "title": "Carwash",
+      "type": "object",
+      "description": "Represents a carwash business.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the carwash."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns this carwash."
+        },
+        "approved": {
+            "type": "boolean",
+            "description": "Whether the carwash has been approved by a super admin."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the carwash."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The contact phone number of the carwash."
+        },
+        "latitude": {
+            "type": "number",
+            "description": "The latitude of the carwash location."
+        },
+        "longitude": {
+            "type": "number",
+            "description": "The longitude of the carwash location."
+        },
+        "credits": {
+            "type": "number",
+            "description": "The current credit balance of the carwash."
+        }
+      },
+      "required": ["name", "ownerId", "approved", "credits"]
+    },
+    "SuperAdmin": {
+        "title": "SuperAdmin",
+        "type": "object",
+        "description": "Represents a super admin user.",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name of the super admin."
+            },
+            "ownerId": {
+                "type": "string",
+                "description": "The UID of the user who is a super admin."
+            },
+            "email": {
+                "type": "string",
+                "description": "The email of the super admin."
+            }
+        },
+        "required": ["name", "ownerId", "email"]
+    },
+    "Settings": {
+        "title": "Settings",
+        "type": "object",
+        "description": "Global application settings managed by super admins.",
+        "properties": {
+            "jobCardCost": {
+                "type": "number",
+                "description": "The cost in credits to create one job card."
+            },
+            "minCreditPurchase": {
+                "type": "number",
+                "description": "The minimum amount in KES for a credit purchase."
+            },
+            "expenseCreditCost": {
+                "type": "number",
+                "description": "The cost in credits to record one expense."
+            }
+        },
+        "required": ["jobCardCost", "minCreditPurchase", "expenseCreditCost"]
+    },
+    "Transaction": {
+        "title": "Transaction",
+        "type": "object",
+        "description": "Represents a credit purchase transaction.",
+        "properties": {
+            "id": { "type": "string" },
+            "carwashId": { "type": "string" },
+            "amount": { "type": "number" },
+            "credits": { "type": "number" },
+            "status": { "type": "string", "enum": ["Pending", "Completed", "Failed"] },
+            "paystackRef": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "carwashId", "amount", "credits", "status", "createdAt"]
+    },
+    "Job": {
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a job card for a carwash service.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the job." },
+        "carwashId": { "type": "string", "description": "ID of the carwash this job belongs to." },
+        "clientId": { "type": "string" },
+        "vehicleId": { "type": "string" },
+        "registrationPlate": { "type": "string" },
+        "clientPhoneNumber": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientEmail": { "type": "string", "format": "email" },
+        "carMake": { "type": "string" },
+        "carModel": { "type": "string" },
+        "carColor": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "service": { "type": "string" },
+        "price": { "type": "number" },
+        "duration": { "type": "number", "description": "Estimated duration of the service in minutes." },
+        "status": { "type": "string", "enum": ["Pending", "Ongoing", "Completed", "Cancelled"] },
+        "receivedBy": { "type": "string", "description": "ID of the team member who received the car." },
+        "servicedBy": { "type": "array", "items": { "type": "string" }, "description": "Array of team member IDs who serviced the car." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "carwashId", "clientId", "vehicleId", "registrationPlate", "clientPhoneNumber", "service", "price", "status", "receivedBy", "servicedBy", "createdAt", "vehicleType", "duration"]
+    },
+    "TeamMember": {
+      "title": "Team Member",
+      "type": "object",
+      "description": "Represents a team member of a carwash.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the team member." },
+        "carwashId": { "type": "string", "description": "ID of the carwash this team member belongs to." },
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "nationalId": { "type": "string" },
+        "nextOfKinName": { "type": "string" },
+        "nextOfKinPhone": { "type": "string" },
+        "roleId": { "type": "string" },
+        "canLogin": { "type": "boolean", "default": false },
+        "salaryType": { "type": "string", "enum": ["Fixed Price per Wash", "Percentage per Wash", "Monthly Salary"], "description": "Type of salary the team member receives." },
+        "salaryAmount": { "type": "number", "description": "The salary amount." }
+      },
+      "required": ["id", "carwashId", "fullName", "phoneNumber", "nationalId", "roleId", "email"]
+    },
+     "Service": {
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a service offered by a carwash.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the service." },
+        "carwashId": { "type": "string", "description": "ID of the carwash this service belongs to." },
+        "name": { "type": "string" },
+        "vehiclePrices": {
+            "type": "array",
+            "description": "An array of objects, each containing vehicle type, price, and duration.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "vehicleType": { "type": "string" },
+                    "price": { "type": "number" },
+                    "duration": { "type": "number", "description": "Duration in minutes." }
+                },
+                "required": ["vehicleType", "price", "duration"]
+            }
+        }
+      },
+      "required": ["id", "carwashId", "name", "vehiclePrices"]
+    },
+    "Role": {
+        "title": "Role",
+        "type": "object",
+        "description": "Represents a user role within a carwash.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the role." },
+            "carwashId": { "type": "string", "description": "ID of the carwash this role belongs to." },
+            "name": { "type": "string", "description": "Name of the role (e.g., 'Washer', 'Supervisor')." }
+        },
+        "required": ["id", "carwashId", "name"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents a single expense record for a carwash.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the expense." },
+        "carwashId": { "type": "string", "description": "ID of the carwash this expense belongs to." },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense.",
+          "enum": ["Salary", "Rent", "Utilities", "Supplies", "Maintenance", "Refund", "Other"]
+        },
+        "description": { "type": "string", "description": "A brief description of the expense." },
+        "amount": { "type": "number", "description": "The amount of the expense." },
+        "date": { "type": "string", "format": "date-time", "description": "The date the expense was incurred." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "teamMemberId": { "type": "string", "description": "ID of the team member if expense is a salary." },
+        "teamMemberName": { "type": "string", "description": "Name of the team member if expense is a salary." }
+      },
+      "required": ["id", "carwashId", "category", "description", "amount", "date", "createdAt"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "type": "object",
+      "description": "Represents a single activity or event within a carwash.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the activity." },
+        "carwashId": { "type": "string", "description": "ID of the carwash this activity belongs to." },
+        "type": { "type": "string", "enum": ["Job", "Expense", "Team", "Admin"], "description": "The type of activity." },
+        "description": { "type": "string", "description": "A summary of the activity." },
+        "status": { "type": "string", "description": "A relevant status for the activity (e.g., job status, expense category)." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "carwashId", "type", "description", "createdAt"]
+    },
+    "Review": {
+        "title": "Review",
+        "type": "object",
+        "description": "Represents a customer review for a completed job.",
+        "properties": {
+            "id": { "type": "string" },
+            "carwashId": { "type": "string" },
+            "jobId": { "type": "string" },
+            "rating": { "type": "number", "description": "Rating from 1 to 5." },
+            "comment": { "type": "string" },
+            "customerName": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "carwashId", "jobId", "rating", "createdAt"]
+    },
+    "Mail": {
+      "title": "Mail",
+      "type": "object",
+      "description": "Represents an email to be sent.",
+      "properties": {
+        "to": {
+          "type": "array",
+          "items": { "type": "string", "format": "email" }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "subject": { "type": "string" },
+            "html": { "type": "string" }
+          },
+          "required": ["subject", "html"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["to", "message", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+            "entityName": "User",
+            "schema": { "$ref": "#/backend/entities/User" },
+            "description": "Stores regular user/customer data."
+        }
+      },
+      {
+        "path": "/signups/{signupId}",
+        "definition": {
+          "entityName": "Signup",
+          "schema": {
+            "$ref": "#/backend/entities/Signup"
+          },
+          "description": "Stores carwash signup records.",
+          "params": [
+            {
+              "name": "signupId",
+              "description": "The unique identifier for the signup record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}",
+        "definition": {
+          "entityName": "Carwash",
+          "schema": {
+            "$ref": "#/backend/entities/Carwash"
+          },
+          "description": "Stores information about carwash businesses."
+        }
+      },
+      {
+          "path": "/superadmins/{superadminId}",
+          "definition": {
+              "entityName": "SuperAdmin",
+              "schema": {
+                  "$ref": "#/backend/entities/SuperAdmin"
+              },
+              "description": "Stores information about super admin users."
+          }
+      },
+      {
+        "path": "/settings/global",
+        "definition": {
+            "entityName": "Settings",
+            "schema": {
+                "$ref": "#/backend/entities/Settings"
+            },
+            "description": "Stores global application settings."
+        }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+            "entityName": "Transaction",
+            "schema": {
+                "$ref": "#/backend/entities/Transaction"
+            },
+            "description": "Stores credit purchase transactions."
+        }
+      },
+       {
+        "path": "/carwashes/{carwashId}/clients/{clientId}",
+        "definition": {
+            "entityName": "Client",
+            "schema": { "$ref": "#/backend/entities/Client" },
+            "description": "Sub-collection for clients specific to a carwash."
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}/clients/{clientId}/vehicles/{vehicleId}",
+        "definition": {
+            "entityName": "Vehicle",
+            "schema": { "$ref": "#/backend/entities/Vehicle" },
+            "description": "Sub-collection for vehicles belonging to a specific client."
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}/jobs/{jobId}",
+        "definition": {
+            "entityName": "Job",
+            "schema": { "$ref": "#/backend/entities/Job" },
+            "description": "Sub-collection for jobs specific to a carwash."
+        }
+      },
+      {
+          "path": "/carwashes/{carwashId}/team/{memberId}",
+          "definition": {
+              "entityName": "TeamMember",
+              "schema": { "$ref": "#/backend/entities/TeamMember" },
+              "description": "Sub-collection for team members specific to a carwash."
+          }
+      },
+      {
+        "path": "/carwashes/{carwashId}/services/{serviceId}",
+        "definition": {
+            "entityName": "Service",
+            "schema": { "$ref": "#/backend/entities/Service" },
+            "description": "Sub-collection for services specific to a carwash."
+        }
+      },
+       {
+        "path": "/carwashes/{carwashId}/roles/{roleId}",
+        "definition": {
+            "entityName": "Role",
+            "schema": { "$ref": "#/backend/entities/Role" },
+            "description": "Sub-collection for roles specific to a carwash."
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}/expenses/{expenseId}",
+        "definition": {
+            "entityName": "Expense",
+            "schema": { "$ref": "#/backend/entities/Expense" },
+            "description": "Sub-collection for expenses specific to a carwash."
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}/activities/{activityId}",
+        "definition": {
+            "entityName": "Activity",
+            "schema": { "$ref": "#/backend/entities/Activity" },
+            "description": "Sub-collection for storing a unified log of activities within a carwash."
+        }
+      },
+      {
+        "path": "/carwashes/{carwashId}/reviews/{reviewId}",
+        "definition": {
+            "entityName": "Review",
+            "schema": { "$ref": "#/backend/entities/Review" },
+            "description": "Sub-collection for customer reviews for a carwash."
+        }
+      },
+      {
+        "path": "/mail/{mailId}",
+        "definition": {
+          "entityName": "Mail",
+          "schema": {
+            "$ref": "#/backend/entities/Mail"
+          },
+          "description": "Collection to store and trigger emails.",
+          "params": [
+            {
+              "name": "mailId",
+              "description": "The unique identifier for the email record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Given the application's focus on carwash signups, a straightforward collection-based approach is suitable. A single collection, `signups`, will store all signup records. This design avoids unnecessary complexity and directly addresses the core feature of managing carwash signups. Since there are no role based permissions or ownership needed, all signups can be placed in a single collection.\\n\\nThis structure inherently achieves Authorization Independence because all the required information is contained within each document. This design also supports the required QAPs by centralizing all signup data in a single collection, allowing for efficient listing and querying of signup records. The absence of hierarchical dependencies simplifies security rules, focusing on validating the data within each signup record."
+  }
+}
