@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { auth, firestore } from '@/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,6 +18,14 @@ interface Carwash {
   name: string;
   email: string;
   approved: boolean;
+  credits: number;
+  jobCount?: number;
+  creditsUsed?: number;
+}
+
+interface Settings {
+    jobCardCost?: number;
+    expenseCreditCost?: number;
 }
 
 const approvalEmailTemplate = (carwashName: string) => {
@@ -36,11 +44,21 @@ const approvalEmailTemplate = (carwashName: string) => {
 export default function SuperAdminCarwashesPage() {
   const [pendingCarwashes, setPendingCarwashes] = useState<Carwash[]>([]);
   const [approvedCarwashes, setApprovedCarwashes] = useState<Carwash[]>([]);
+  const [settings, setSettings] = useState<Settings>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isApprovedLoading, setIsApprovedLoading] = useState(true);
   const { toast } = useToast();
   
   useEffect(() => {
     setIsLoading(true);
+    setIsApprovedLoading(true);
+
+    const settingsRef = doc(firestore, 'settings', 'global');
+    const unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
+        if(docSnap.exists()){
+            setSettings(docSnap.data() as Settings);
+        }
+    });
     
     // Listener for pending carwashes
     const pendingQuery = query(collection(firestore, 'carwashes'), where('approved', '==', false));
@@ -55,15 +73,37 @@ export default function SuperAdminCarwashesPage() {
 
     // Listener for approved carwashes
     const approvedQuery = query(collection(firestore, 'carwashes'), where('approved', '==', true));
-    const unsubscribeApproved = onSnapshot(approvedQuery, (querySnapshot) => {
-      const carwashes: Carwash[] = [];
-      querySnapshot.forEach((doc) => {
-        carwashes.push({ id: doc.id, ...doc.data() } as Carwash);
+    const unsubscribeApproved = onSnapshot(approvedQuery, async (querySnapshot) => {
+      const carwashesPromises = querySnapshot.docs.map(async (doc) => {
+        const carwash = { id: doc.id, ...doc.data() } as Carwash;
+        
+        const jobsRef = collection(firestore, 'carwashes', carwash.id, 'jobs');
+        const expensesRef = collection(firestore, 'carwashes', carwash.id, 'expenses');
+
+        const [jobsSnap, expensesSnap] = await Promise.all([
+          getDocs(jobsRef),
+          getDocs(expensesRef)
+        ]);
+
+        const jobCount = jobsSnap.size;
+        const expenseCount = expensesSnap.size;
+        
+        const settingsData = (await getDoc(settingsRef)).data() as Settings | undefined;
+        const jobCardCost = settingsData?.jobCardCost || 1.5;
+        const expenseCreditCost = settingsData?.expenseCreditCost || 0.5;
+
+        const creditsUsed = (jobCount * jobCardCost) + (expenseCount * expenseCreditCost);
+
+        return { ...carwash, jobCount, creditsUsed };
       });
+
+      const carwashes = await Promise.all(carwashesPromises);
       setApprovedCarwashes(carwashes);
+      setIsApprovedLoading(false);
     });
     
     return () => {
+      unsubscribeSettings();
       unsubscribePending();
       unsubscribeApproved();
     };
@@ -106,40 +146,71 @@ export default function SuperAdminCarwashesPage() {
     }
   };
 
-  const renderTable = (carwashes: Carwash[], isPending: boolean) => (
+  const renderPendingTable = () => (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Carwash Name</TableHead>
           <TableHead>Email</TableHead>
-          {isPending && <TableHead className="text-right">Action</TableHead>}
+          <TableHead className="text-right">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {isLoading ? (
-          <TableRow><TableCell colSpan={isPending ? 3 : 2} className="h-24 text-center">Loading...</TableCell></TableRow>
-        ) : carwashes.length === 0 ? (
+          <TableRow><TableCell colSpan={3} className="h-24 text-center">Loading...</TableCell></TableRow>
+        ) : pendingCarwashes.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={isPending ? 3 : 2} className="h-24 text-center">
-              No {isPending ? 'pending approvals' : 'approved carwashes'}.
+            <TableCell colSpan={3} className="h-24 text-center">
+              No pending approvals.
             </TableCell>
           </TableRow>
         ) : (
-          carwashes.map((carwash) => (
+          pendingCarwashes.map((carwash) => (
             <TableRow key={carwash.id}>
               <TableCell className="font-medium">{carwash.name}</TableCell>
               <TableCell>{carwash.email}</TableCell>
-              {isPending && (
-                <TableCell className="text-right">
+              <TableCell className="text-right">
                   <Button onClick={() => handleApprove(carwash)}>Approve</Button>
-                </TableCell>
-              )}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
   );
+
+  const renderApprovedTable = () => (
+     <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Carwash Name</TableHead>
+          <TableHead>Credit Balance</TableHead>
+          <TableHead>Job Cards</TableHead>
+          <TableHead>Credits Used</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isApprovedLoading ? (
+          <TableRow><TableCell colSpan={4} className="h-24 text-center">Loading...</TableCell></TableRow>
+        ) : approvedCarwashes.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={4} className="h-24 text-center">
+              No approved carwashes.
+            </TableCell>
+          </TableRow>
+        ) : (
+          approvedCarwashes.map((carwash) => (
+            <TableRow key={carwash.id}>
+              <TableCell className="font-medium">{carwash.name}</TableCell>
+              <TableCell>{carwash.credits.toLocaleString()}</TableCell>
+              <TableCell>{carwash.jobCount?.toLocaleString() ?? 'N/A'}</TableCell>
+              <TableCell>{carwash.creditsUsed?.toFixed(2) ?? 'N/A'}</TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  )
 
   return (
      <Card>
@@ -154,10 +225,10 @@ export default function SuperAdminCarwashesPage() {
                     <TabsTrigger value="approved">Approved Carwashes</TabsTrigger>
                 </TabsList>
                 <TabsContent value="pending" className="mt-4">
-                    {renderTable(pendingCarwashes, true)}
+                    {renderPendingTable()}
                 </TabsContent>
                 <TabsContent value="approved" className="mt-4">
-                    {renderTable(approvedCarwashes, false)}
+                    {renderApprovedTable()}
                 </TabsContent>
             </Tabs>
         </CardContent>
