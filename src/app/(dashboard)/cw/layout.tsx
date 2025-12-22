@@ -1,3 +1,4 @@
+
 'use client';
 
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -29,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Car, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Car, Settings, LogOut, Handshake } from 'lucide-react';
 
 export default function SuperAdminLayout({
   children,
@@ -127,15 +128,23 @@ export default function SuperAdminLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/cw/carwashes'}>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/cw/carwashes')}>
                 <Link href="/cw/carwashes">
                   <Car />
                   Carwashes
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/cw/requests')}>
+                <Link href="/cw/requests">
+                  <Handshake />
+                  Requests
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/cw/settings'}>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/cw/settings')}>
                 <Link href="/cw/settings">
                   <Settings />
                   Settings
