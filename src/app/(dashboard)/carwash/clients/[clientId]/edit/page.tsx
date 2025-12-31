@@ -33,7 +33,7 @@ import Link from 'next/link';
 const formSchema = z.object({
   clientName: z.string().min(1, 'Client name is required'),
   clientEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
-  clientPhoneNumber: z.string().readonly(),
+  clientPhoneNumber: z.string().optional(),
 });
 
 export default function EditClientPage() {
@@ -50,7 +50,7 @@ export default function EditClientPage() {
         defaultValues: {
             clientName: '',
             clientEmail: '',
-            clientPhoneNumber: clientId as string,
+            clientPhoneNumber: '',
         },
     });
 
@@ -74,7 +74,7 @@ export default function EditClientPage() {
                      form.reset({
                         clientName: clientData.name || '',
                         clientEmail: clientData.email || '',
-                        clientPhoneNumber: clientData.phoneNumber,
+                        clientPhoneNumber: clientData.phoneNumber || '',
                     });
                 }
                  setIsLoading(false);
@@ -99,6 +99,7 @@ export default function EditClientPage() {
             await updateDoc(clientDocRef, {
                 name: values.clientName,
                 email: values.clientEmail,
+                phoneNumber: values.clientPhoneNumber,
             });
 
             toast({
@@ -164,12 +165,12 @@ export default function EditClientPage() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
-                            name="clientPhoneNumber"
+                            name="clientName"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Phone Number</FormLabel>
+                                    <FormLabel>Client Name</FormLabel>
                                     <FormControl>
-                                        <Input {...field} readOnly className="bg-muted" />
+                                        <Input placeholder="John Doe" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -177,12 +178,12 @@ export default function EditClientPage() {
                         />
                         <FormField
                             control={form.control}
-                            name="clientName"
+                            name="clientPhoneNumber"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Client Name</FormLabel>
+                                    <FormLabel>Phone Number (Optional)</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="John Doe" {...field} />
+                                        <Input {...field} placeholder="0712345678" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

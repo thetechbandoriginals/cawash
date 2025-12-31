@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Car, Coins, Edit, MoreHorizontal, PlusCircle, Trash2, Truck, Loader2 } from 'lucide-react';
+import { ArrowLeft, Car, Coins, Edit, MoreHorizontal, PlusCircle, Trash2, Truck, Loader2, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CustomDialog } from '@/components/ui/custom-dialog';
@@ -26,9 +26,10 @@ interface Job {
 }
 
 interface ClientInfo {
+    id: string;
     name: string;
     email?: string;
-    phone: string;
+    phoneNumber?: string;
 }
 
 interface Vehicle {
@@ -77,9 +78,10 @@ export default function ClientProfilePage() {
                 if(docSnap.exists()){
                     const clientData = docSnap.data();
                     setClientInfo({
+                        id: docSnap.id,
                         name: clientData.name,
                         email: clientData.email,
-                        phone: clientData.phoneNumber,
+                        phoneNumber: clientData.phoneNumber,
                     });
                 }
                 setIsLoading(false);
@@ -170,7 +172,7 @@ export default function ClientProfilePage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Client Not Found</CardTitle>
-                    <CardDescription>Could not find a client with this phone number.</CardDescription>
+                    <CardDescription>Could not find a client with this ID.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Button asChild>
@@ -202,7 +204,11 @@ export default function ClientProfilePage() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">{clientInfo.name}</h1>
-                        <p className="text-muted-foreground">{clientInfo.phone} {clientInfo.email && `| ${clientInfo.email}`}</p>
+                        <p className="text-muted-foreground flex items-center gap-2">
+                           {clientInfo.phoneNumber && <><Phone className="h-4 w-4"/> {clientInfo.phoneNumber}</>}
+                           {clientInfo.phoneNumber && clientInfo.email && " | "}
+                           {clientInfo.email && ` ${clientInfo.email}`}
+                        </p>
                     </div>
                 </div>
                 <Button asChild variant="outline">

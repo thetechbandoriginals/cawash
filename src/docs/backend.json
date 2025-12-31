@@ -18,7 +18,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the client (usually phone number)."
+          "description": "Unique identifier for the client."
         },
         "carwashId": {
           "type": "string",
@@ -29,7 +29,7 @@
         "email": { "type": "string", "format": "email" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "carwashId", "name", "phoneNumber", "createdAt"]
+      "required": ["id", "carwashId", "name", "createdAt"]
     },
     "Vehicle": {
         "title": "Vehicle",

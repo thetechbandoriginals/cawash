@@ -42,8 +42,9 @@ interface TeamMember {
 }
 
 interface Client {
-    id: string; // phone number
+    id: string;
     name: string;
+    phoneNumber?: string;
     email?: string;
 }
 
@@ -82,7 +83,7 @@ const formSchema = z.object({
   searchQuery: z.string().optional(),
   
   // Client fields
-  clientPhoneNumber: z.string().min(1, 'Client phone number is required'),
+  clientPhoneNumber: z.string().optional(),
   clientName: z.string().min(1, 'Client name is required'),
   clientEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
 
@@ -175,32 +176,47 @@ export default function CreateJobCardPage() {
             const results: SearchResult[] = [];
             const upperSearchQuery = searchQuery.toUpperCase();
 
-            // 1. Search Clients by Phone Number
             const clientsRef = collection(firestore, 'carwashes', user.uid, 'clients');
-            const clientQuery = query(
+            
+            // 1. Search by phone number OR name
+            const clientNameQuery = query(
                 clientsRef, 
+                where('name', '>=', searchQuery),
+                where('name', '<=', searchQuery + '\uf8ff'),
+                limit(5)
+            );
+            const clientPhoneQuery = query(
+                clientsRef,
                 where('phoneNumber', '>=', searchQuery),
                 where('phoneNumber', '<=', searchQuery + '\uf8ff'),
                 limit(5)
             );
-            const clientSnapshot = await getDocs(clientQuery);
-            clientSnapshot.forEach(doc => {
+            
+            const [clientNameSnapshot, clientPhoneSnapshot] = await Promise.all([getDocs(clientNameQuery), getDocs(clientPhoneQuery)]);
+
+            const foundClients = new Map<string, Client>();
+            clientNameSnapshot.forEach(doc => {
                 const clientData = { id: doc.id, ...doc.data() } as Client;
-                results.push({
+                foundClients.set(clientData.id, clientData);
+            });
+             clientPhoneSnapshot.forEach(doc => {
+                const clientData = { id: doc.id, ...doc.data() } as Client;
+                foundClients.set(clientData.id, clientData);
+            });
+
+            foundClients.forEach(clientData => {
+                 results.push({
                     type: 'client',
                     id: clientData.id,
                     name: clientData.name,
-                    description: `Client - ${clientData.id}`,
+                    description: `Client - ${clientData.phoneNumber || 'No phone'}`,
                     data: clientData
                 });
             });
 
+
             // 2. Search Vehicles by Registration Plate
-            // Firestore doesn't support collection group queries with complex filters on different fields in client sdk well.
-            // A simplified search on all vehicles could be slow and expensive.
-            // For this implementation, we will fetch all vehicles and filter client-side.
-            // This is NOT ideal for large datasets but works for this scenario.
-             const allClientsSnapshot = await getDocs(clientsRef);
+            const allClientsSnapshot = await getDocs(clientsRef);
              for (const clientDoc of allClientsSnapshot.docs) {
                 const vehiclesRef = collection(clientDoc.ref, 'vehicles');
                 const vehicleQuery = query(vehiclesRef, 
@@ -276,7 +292,6 @@ export default function CreateJobCardPage() {
     if (result.type === 'client') {
         client = result.data as Client;
     } else {
-        // If a vehicle is selected, we need to fetch its owner client
         const vehicle = result.data as Vehicle;
         if (!user) return;
         const clientDocRef = doc(firestore, 'carwashes', user.uid, 'clients', vehicle.clientId);
@@ -290,7 +305,7 @@ export default function CreateJobCardPage() {
 
     setSelectedClient(client);
     form.setValue('clientName', client.name);
-    form.setValue('clientPhoneNumber', client.id);
+    form.setValue('clientPhoneNumber', client.phoneNumber || '');
     form.setValue('clientEmail', client.email || '');
     setSearchResults([]);
     form.setValue('searchQuery', '');
@@ -342,10 +357,16 @@ export default function CreateJobCardPage() {
                 throw new Error("Could not find price/duration for the selected service and vehicle type.");
             }
             
-            let clientId = selectedClient?.id || values.clientPhoneNumber;
-            let vehicleId = values.vehicleId;
+            let clientId = selectedClient?.id;
+            let clientRef;
 
-            const clientRef = doc(firestore, 'carwashes', user.uid, 'clients', clientId);
+            if (clientId) {
+                clientRef = doc(firestore, 'carwashes', user.uid, 'clients', clientId);
+            } else {
+                clientRef = doc(collection(firestore, 'carwashes', user.uid, 'clients'));
+                clientId = clientRef.id;
+            }
+
             transaction.set(clientRef, {
                 id: clientId,
                 carwashId: user.uid,
@@ -355,6 +376,7 @@ export default function CreateJobCardPage() {
                 createdAt: serverTimestamp(),
             }, { merge: true });
 
+            let vehicleId = values.vehicleId;
             const vehicleDataToSave = {
                 clientId: clientId,
                 carwashId: user.uid,
@@ -367,7 +389,7 @@ export default function CreateJobCardPage() {
             
             const vehiclesRef = collection(firestore, 'carwashes', user.uid, 'clients', clientId, 'vehicles');
             const q = query(vehiclesRef, where("registrationPlate", "==", values.registrationPlate.toUpperCase()), limit(1));
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(q); // Use regular getDocs inside transaction
             
             let existingVehicleDoc = null;
             if (!querySnapshot.empty) {
@@ -414,7 +436,6 @@ export default function CreateJobCardPage() {
                 createdAt: serverTimestamp(),
             });
 
-            // Deduct credits
             const newCreditBalance = currentCredits - jobCardCost;
             transaction.update(carwashDocRef, { credits: newCreditBalance });
         });
@@ -454,7 +475,7 @@ export default function CreateJobCardPage() {
             <div>
                 <CardTitle>Create Job Card</CardTitle>
                 <CardDescription>
-                Search by phone or reg. plate, or add a new client.
+                Search by phone, name, or reg. plate, or add a new client.
                 </CardDescription>
             </div>
         </div>
@@ -463,7 +484,6 @@ export default function CreateJobCardPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
-            {/* CLIENT SECTION */}
             <div className="space-y-4 p-4 border rounded-lg relative">
                 <CardTitle className="text-lg">Client Details</CardTitle>
                 <div className="relative">
@@ -471,7 +491,7 @@ export default function CreateJobCardPage() {
                         <>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search by Phone Number or Registration Plate..." className="pl-10" {...form.register('searchQuery')}/>
+                            <Input placeholder="Search by Name, Phone Number, or Registration Plate..." className="pl-10" {...form.register('searchQuery')}/>
                             {searchQuery && (
                                 <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-md shadow-lg mt-1">
                                     {isSearchLoading ? (
@@ -496,7 +516,7 @@ export default function CreateJobCardPage() {
                         </>
                     ) : (
                         <div className="flex items-center justify-between p-2 bg-muted rounded-md">
-                            <p>Selected Client: <span className="font-bold">{selectedClient.name}</span> ({selectedClient.id})</p>
+                            <p>Selected Client: <span className="font-bold">{selectedClient.name}</span> ({selectedClient.phoneNumber || 'No Phone'})</p>
                             <Button variant="link" size="sm" onClick={() => {
                                 setSelectedClient(null);
                                 setClientVehicles([]);
@@ -517,7 +537,7 @@ export default function CreateJobCardPage() {
                         <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} disabled={!!selectedClient} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="clientPhoneNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Client Phone Number</FormLabel><FormControl><Input placeholder="0712345678" {...field} disabled={!!selectedClient} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Client Phone Number (Optional)</FormLabel><FormControl><Input placeholder="0712345678" {...field} disabled={!!selectedClient} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="clientEmail" render={({ field }) => (
                         <FormItem className="md:col-span-2"><FormLabel>Client Email (Optional)</FormLabel><FormControl><Input type="email" placeholder="john.doe@example.com" {...field} disabled={!!selectedClient} /></FormControl><FormMessage /></FormItem>

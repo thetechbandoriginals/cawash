@@ -4,15 +4,16 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp, getDocs } from 'firebase/firestore';
 import { auth, firestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import Link from 'next/link';
 
 interface Client {
-    id: string; // Using phone number as a unique ID for clients
+    id: string; 
     name: string;
+    phoneNumber?: string;
     email?: string;
     jobCount: number;
     lastSeen: Date;
@@ -35,36 +36,34 @@ export default function ClientsPage() {
 
         const clientsQuery = query(collection(firestore, 'carwashes', user.uid, 'clients'));
         const unsubscribeClients = onSnapshot(clientsQuery, async (snapshot) => {
-            const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (Client & {createdAt: Timestamp})[];
+            const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (Omit<Client, 'jobCount' | 'lastSeen'> & {createdAt: Timestamp})[];
             
             const jobsQuery = query(collection(firestore, 'carwashes', user.uid, 'jobs'));
-            const jobsSnapshot = await onSnapshot(jobsQuery, (jobsSnap) => {
-                const jobCounts = new Map<string, number>();
-                const lastSeenMap = new Map<string, Date>();
+            const jobsSnapshot = await getDocs(jobsQuery);
+            
+            const jobCounts = new Map<string, number>();
+            const lastSeenMap = new Map<string, Date>();
 
-                jobsSnap.forEach(doc => {
-                    const job = doc.data();
-                    if(job.clientId) {
-                        jobCounts.set(job.clientId, (jobCounts.get(job.clientId) || 0) + 1);
-                        const jobDate = job.createdAt.toDate();
-                        const currentLastSeen = lastSeenMap.get(job.clientId);
-                        if (!currentLastSeen || jobDate > currentLastSeen) {
-                            lastSeenMap.set(job.clientId, jobDate);
-                        }
+            jobsSnapshot.forEach(doc => {
+                const job = doc.data();
+                if(job.clientId) {
+                    jobCounts.set(job.clientId, (jobCounts.get(job.clientId) || 0) + 1);
+                    const jobDate = job.createdAt.toDate();
+                    const currentLastSeen = lastSeenMap.get(job.clientId);
+                    if (!currentLastSeen || jobDate > currentLastSeen) {
+                        lastSeenMap.set(job.clientId, jobDate);
                     }
-                });
-
-                 const clientsList = clientsData.map(client => ({
-                    ...client,
-                    jobCount: jobCounts.get(client.id) || 0,
-                    lastSeen: lastSeenMap.get(client.id) || client.createdAt.toDate(),
-                })).sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
-
-                setClients(clientsList);
-                setIsLoading(false);
+                }
             });
 
-            return () => jobsSnapshot();
+            const clientsList = clientsData.map(client => ({
+                ...client,
+                jobCount: jobCounts.get(client.id) || 0,
+                lastSeen: lastSeenMap.get(client.id) || client.createdAt.toDate(),
+            })).sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
+
+            setClients(clientsList);
+            setIsLoading(false);
         });
 
         return () => unsubscribeClients();
@@ -97,7 +96,7 @@ export default function ClientsPage() {
                         clients.map((client) => (
                             <TableRow key={client.id}>
                                 <TableCell className="font-medium">{client.name}</TableCell>
-                                <TableCell>{client.id}</TableCell>
+                                <TableCell>{client.phoneNumber || 'N/A'}</TableCell>
                                 <TableCell>{client.email || 'N/A'}</TableCell>
                                 <TableCell>{client.jobCount}</TableCell>
                                 <TableCell>{client.lastSeen.toLocaleDateString()}</TableCell>
