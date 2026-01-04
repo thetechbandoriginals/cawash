@@ -351,7 +351,7 @@ export default function CarwashDashboard() {
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
                 <div>
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-xl font-bold text-blue-600">Ksh {totalRevenue.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-primary">Ksh {totalRevenue.toLocaleString()}</p>
                 </div>
                  <div>
                     <p className="text-sm text-muted-foreground">Total Expenses</p>
