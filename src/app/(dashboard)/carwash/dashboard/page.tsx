@@ -315,7 +315,7 @@ export default function CarwashDashboard() {
                 <LineChart
                   data={chartData}
                   margin={{
-                    top: 5, right: 10, left: -20, bottom: 0,
+                    top: 5, right: 10, left: 10, bottom: 0,
                   }}
                 >
                   <CartesianGrid vertical={false} />
@@ -324,12 +324,12 @@ export default function CarwashDashboard() {
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
+                    tickFormatter={() => ""}
                   />
                   <YAxis
-                    tickFormatter={(value) => `Ksh ${value / 1000}k`}
                     tickLine={false}
                     axisLine={false}
+                    tickFormatter={() => ""}
                   />
                   <ChartTooltip
                     cursor={false}
@@ -349,12 +349,15 @@ export default function CarwashDashboard() {
             </div>
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
                 <div>
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-xl font-bold text-green-600">Ksh {totalRevenue.toLocaleString()}</p>
                 </div>
                  <div>
+                    <p className="text-sm text-muted-foreground">Total Expenses</p>
                     <p className="text-xl font-bold text-destructive">Ksh {totalExpenses.toLocaleString()}</p>
                 </div>
                  <div>
+                    <p className="text-sm text-muted-foreground">Net Profit</p>
                     <p className={`text-xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>Ksh {profit.toLocaleString()}</p>
                 </div>
              </div>
