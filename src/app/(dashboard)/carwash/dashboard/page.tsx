@@ -243,6 +243,14 @@ export default function CarwashDashboard() {
        <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Hi, {carwashData?.name || 'Carwash Owner'}!</h1>
         <p className="text-muted-foreground">Here's a look at your business performance.</p>
+        <div className="mt-4 flex gap-2">
+            <Button asChild>
+                <Link href="/carwash/jobs/create"><PlusCircle /> Create Job</Link>
+            </Button>
+            <Button asChild variant="secondary">
+                <Link href="/carwash/jobs"><Briefcase /> View Jobs</Link>
+            </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -409,7 +417,7 @@ export default function CarwashDashboard() {
                                             <span className="text-muted-foreground">Ksh {amount.toLocaleString()}</span>
                                         </div>
                                         <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-                                            <div className="bg-destructive h-1.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                            <div className="bg-destructive h-1.5 rounded-full" style={{ width: `${'${percentage}'}%` }}></div>
                                         </div>
                                     </div>
                                 )
@@ -515,7 +523,7 @@ function WelcomeGuide({ carwashData, teamMembers }: { carwashData: Carwash | nul
           {checklist.map((item, index) => (
             <li key={index}>
               <Link href={item.href} className="group flex items-center gap-4 p-4 rounded-lg transition-colors hover:bg-accent">
-                <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center transition-colors ${item.completed ? 'bg-green-100 dark:bg-green-900' : 'bg-muted group-hover:bg-primary/10'}`}>
+                <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center transition-colors ${'${item.completed}' ? 'bg-green-100 dark:bg-green-900' : 'bg-muted group-hover:bg-primary/10'}`}>
                   {item.completed ? (
                     <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                   ) : (
@@ -523,7 +531,7 @@ function WelcomeGuide({ carwashData, teamMembers }: { carwashData: Carwash | nul
                   )}
                 </div>
                 <div>
-                  <p className={`font-medium ${item.completed ? 'text-muted-foreground line-through' : ''}`}>
+                  <p className={`font-medium ${'${item.completed}' ? 'text-muted-foreground line-through' : ''}`}>
                     {item.name}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -542,4 +550,6 @@ function WelcomeGuide({ carwashData, teamMembers }: { carwashData: Carwash | nul
 
 
     
+    
+
     
