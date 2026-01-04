@@ -150,7 +150,7 @@ export default function CarwashDashboard() {
     const chartConfig = {
       profit: {
         label: "Profit",
-        color: "hsl(var(--chart-1))",
+        color: "hsl(142.1 70.6% 45.3%)", // Green color
       },
     }
 
@@ -348,7 +348,7 @@ export default function CarwashDashboard() {
                 </LineChart>
               </ChartContainer>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
+             <div className="grid grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
                 <div>
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-xl font-bold text-primary">Ksh {totalRevenue.toLocaleString()}</p>
