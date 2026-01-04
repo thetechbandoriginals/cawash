@@ -6,7 +6,6 @@ import {
     Coins, 
     Car, 
     Users, 
-    TrendingUp, 
     CreditCard, 
     PlusCircle, 
     Settings, 
@@ -14,7 +13,6 @@ import {
     ArrowRight,
     Briefcase,
     FileText,
-    ArrowDownLeft,
     UserCheck,
     UserX,
     Building,
@@ -37,22 +35,30 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, onSnapshot, query, where, Timestamp, getDocs, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp, getDocs, doc } from 'firebase/firestore';
 import { auth, firestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
+import { format, subMonths, startOfMonth } from 'date-fns';
+
 
 interface Job {
   id: string;
@@ -68,6 +74,7 @@ interface Expense {
     id: string;
     amount: number;
     category: string;
+    date: Timestamp;
 }
 
 interface Carwash {
@@ -86,9 +93,42 @@ type JobStatusCounts = {
     [key in 'Pending' | 'Ongoing' | 'Completed' | 'Cancelled']: number;
 };
 
+const processChartData = (jobs: Job[], expenses: Expense[]) => {
+    const months = Array.from({ length: 6 }, (_, i) => format(subMonths(new Date(), 5 - i), 'MMM yyyy'));
+    const monthlyData: { [key: string]: { revenue: number, expenses: number, profit: number } } = {};
+    
+    months.forEach(month => {
+        monthlyData[month] = { revenue: 0, expenses: 0, profit: 0 };
+    });
+
+    jobs.forEach(job => {
+        if (job.status === 'Completed') {
+            const month = format(job.createdAt.toDate(), 'MMM yyyy');
+            if (monthlyData[month]) {
+                monthlyData[month].revenue += job.price;
+            }
+        }
+    });
+
+    expenses.forEach(expense => {
+        const month = format(expense.date.toDate(), 'MMM yyyy');
+         if (monthlyData[month]) {
+            monthlyData[month].expenses += expense.amount;
+        }
+    });
+
+    Object.keys(monthlyData).forEach(month => {
+        monthlyData[month].profit = monthlyData[month].revenue - monthlyData[month].expenses;
+    });
+
+    return Object.entries(monthlyData).map(([name, data]) => ({ name: name.split(' ')[0], ...data }));
+};
+
+
 export default function CarwashDashboard() {
     const [user, setUser] = useState<User | null>(null);
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
     const [totalRevenue, setTotalRevenue] = useState(0);
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [clientStats, setClientStats] = useState({ new: 0, returning: 0 });
@@ -104,6 +144,14 @@ export default function CarwashDashboard() {
         Completed: 0,
         Cancelled: 0,
     });
+    
+    const chartData = processChartData(jobs, expenses);
+    const chartConfig = {
+      profit: {
+        label: "Profit",
+        color: "hsl(var(--chart-1))",
+      },
+    }
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -191,6 +239,7 @@ export default function CarwashDashboard() {
         const expensesQuery = query(collection(firestore, 'carwashes', user.uid, 'expenses'));
         const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
             const expensesData = snapshot.docs.map(doc => doc.data() as Expense);
+            setExpenses(expensesData);
             const total = expensesData.reduce((acc, expense) => acc + expense.amount, 0);
             setTotalExpenses(total);
 
@@ -258,10 +307,47 @@ export default function CarwashDashboard() {
         <Card className="lg:col-span-2 flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Financial Overview</CardTitle>
-            <CardDescription>Revenue, expenses, and profit summary.</CardDescription>
+            <CardDescription>Profit trends over the last 6 months.</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            <div className="h-48">
+              <ChartContainer config={chartConfig} className="w-full h-full">
+                <LineChart
+                  data={chartData}
+                  margin={{
+                    top: 5, right: 10, left: -20, bottom: 0,
+                  }}
+                >
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => value.slice(0, 3)}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `Ksh ${value / 1000}k`}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent 
+                       formatter={(value) => `Ksh ${Number(value).toLocaleString()}`}
+                    />}
+                  />
+                  <Line
+                    dataKey="profit"
+                    type="monotone"
+                    stroke="var(--color-profit)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
                 <div>
                     <p className="text-xs text-muted-foreground">Total Revenue</p>
                     <p className="text-xl font-bold">Ksh {totalRevenue.toLocaleString()}</p>
@@ -277,11 +363,8 @@ export default function CarwashDashboard() {
              </div>
           </CardContent>
           <CardFooter className="flex justify-start gap-2">
-            <Button asChild className="flex-1">
-                <Link href="/carwash/jobs/create"><PlusCircle /> Create Job</Link>
-            </Button>
              <Button asChild variant="outline" className="flex-1">
-                <Link href="/carwash/reports"><FileText /> View Reports</Link>
+                <Link href="/carwash/reports"><FileText /> View Full Reports</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -547,9 +630,3 @@ function WelcomeGuide({ carwashData, teamMembers }: { carwashData: Carwash | nul
     </Card>
   );
 }
-
-
-    
-    
-
-    
