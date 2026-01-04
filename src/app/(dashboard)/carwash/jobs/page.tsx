@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, MoreHorizontal, Eye, ChevronDown, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Eye, ChevronDown, Trash2, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, onSnapshot, query, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -20,8 +20,9 @@ interface Job {
   clientName: string;
   clientPhoneNumber: string;
   registrationPlate: string;
-  carMake?: string;
   service: string;
+  vehicleType: string;
+  servicedBy: string[];
   status: string;
   createdAt: Timestamp;
 }
@@ -122,10 +123,9 @@ export default function JobsPage() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Job ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Vehicle</TableHead>
+                        <TableHead>Vehicle & Customer</TableHead>
                         <TableHead>Service</TableHead>
+                        <TableHead>Serviced By</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Date</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -134,18 +134,25 @@ export default function JobsPage() {
                 <TableBody>
                      {isLoading ? (
                          <TableRow>
-                            <TableCell colSpan={7} className="text-center h-24">Loading jobs...</TableCell>
+                            <TableCell colSpan={6} className="text-center h-24">Loading jobs...</TableCell>
                         </TableRow>
                     ) : jobs.length > 0 ? (
                         jobs.map((job) => (
                             <TableRow key={job.id}>
-                                <TableCell className="font-medium uppercase">{job.id.substring(0, 7)}</TableCell>
                                 <TableCell>
-                                    <div className="font-medium">{job.clientName}</div>
-                                    <div className="text-sm text-muted-foreground">{job.clientPhoneNumber}</div>
+                                    <div className="font-medium uppercase">{job.registrationPlate}</div>
+                                    <div className="text-sm text-muted-foreground">{job.clientName}</div>
                                 </TableCell>
-                                <TableCell>{job.carMake || ''} - {job.registrationPlate}</TableCell>
-                                <TableCell>{job.service}</TableCell>
+                                <TableCell>
+                                    <div className="font-medium">{job.service}</div>
+                                    <div className="text-sm text-muted-foreground">{job.vehicleType}</div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                        <span>{job.servicedBy?.join(', ') || 'N/A'}</span>
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                      <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -190,7 +197,7 @@ export default function JobsPage() {
                         ))
                     ) : (
                          <TableRow>
-                            <TableCell colSpan={7} className="text-center h-24">No jobs created yet.</TableCell>
+                            <TableCell colSpan={6} className="text-center h-24">No jobs created yet.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
