@@ -26,7 +26,9 @@ import {
     CheckCircle,
     XCircle,
     Receipt,
-    Phone
+    Phone,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import {
   Card,
@@ -59,6 +61,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { format, subMonths, startOfMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 interface Job {
@@ -145,6 +148,7 @@ export default function CarwashDashboard() {
         Completed: 0,
         Cancelled: 0,
     });
+    const [profitGrowth, setProfitGrowth] = useState<number | null>(null);
     
     const chartData = processChartData(jobs, expenses);
     const chartConfig = {
@@ -259,6 +263,24 @@ export default function CarwashDashboard() {
         };
     }, [user]); 
     
+    useEffect(() => {
+        if (chartData.length >= 2) {
+            const currentMonthData = chartData[chartData.length - 1];
+            const previousMonthData = chartData[chartData.length - 2];
+
+            if (previousMonthData.profit !== 0) {
+                const growth = ((currentMonthData.profit - previousMonthData.profit) / Math.abs(previousMonthData.profit)) * 100;
+                setProfitGrowth(growth);
+            } else if (currentMonthData.profit > 0) {
+                setProfitGrowth(100);
+            } else {
+                setProfitGrowth(0);
+            }
+        } else {
+            setProfitGrowth(null);
+        }
+    }, [chartData]);
+    
     if (isLoading) {
         return (
             <div className="space-y-6 animate-pulse">
@@ -307,8 +329,21 @@ export default function CarwashDashboard() {
         {/* Financial Overview */}
         <Card className="lg:col-span-2 flex flex-col">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Financial Overview</CardTitle>
-            <CardDescription>Profit trends over the last 6 months.</CardDescription>
+             <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="text-lg font-semibold">Financial Overview</CardTitle>
+                    <CardDescription>Profit trends over the last 6 months.</CardDescription>
+                </div>
+                 {profitGrowth !== null && (
+                    <div className={cn(
+                        "flex items-center gap-1 text-sm font-semibold",
+                        profitGrowth >= 0 ? "text-green-600" : "text-destructive"
+                    )}>
+                        {profitGrowth >= 0 ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                        {Math.abs(profitGrowth).toFixed(1)}%
+                    </div>
+                )}
+            </div>
           </CardHeader>
           <CardContent className="flex-grow">
             <div className="h-48">
